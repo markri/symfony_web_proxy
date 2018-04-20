@@ -1,0 +1,52 @@
+version: "3"
+
+volumes:
+    mariadb:
+
+services:
+    php-fpm:
+        build: .docker/images/php-fpm
+        container_name: wrap_phpfpm
+        volumes:
+           - ./:/var/www/html:rw
+           - ./.docker/images/php-fpm/config/php.ini:/usr/local/etc/php/php.ini
+        links:
+            - mariadb
+
+    php-cli:
+        build: .docker/images/php-cli
+        container_name: wrap_phpcli
+        volumes:
+           - ./:/var/www/html:rw
+           - ./.docker/images/php-cli/config/php.ini:/usr/local/etc/php/php.ini
+        links:
+            - mariadb
+
+    nginx:
+        image: nginx:1.12.2
+        container_name: wrap_nginx
+        volumes:
+            - ./.docker/images/nginx/nginx.conf:/etc/nginx/nginx.conf
+            - ./.docker/images/nginx/vhost.conf:/etc/nginx/conf.d/vhost.conf
+            - ./.docker/log/nginx:/var/log/nginx
+            - ./:/var/www/html
+        links:
+            - php-fpm
+        ports:
+            - 80:80
+        depends_on:
+            - php-fpm
+            - mariadb
+
+    mariadb:
+        image: mariadb:10.0
+        container_name: wrap_mariadb
+        ports:
+          - 3306:3306
+        environment:
+            MYSQL_ROOT_PASSWORD: wrapper
+            MYSQL_USER: wrapper
+            MYSQL_PASSWORD: wrapper
+            MYSQL_DATABASE: wrapper
+        volumes:
+            - mariadb:/var/lib/mysql
